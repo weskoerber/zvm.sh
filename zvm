@@ -683,11 +683,6 @@ assume_target() {
 ! [ -d "$ZVM_HOME" ] && mkdir -p "$ZVM_HOME" > /dev/null
 ! [ -d "$ZVM_BIN" ] && mkdir -p "$ZVM_BIN" > /dev/null
 
-if [ "$(basename "$ZVM_HOME")" != "zvm" ]; then
-    die "'ZVM_HOME' is invalid (must be named 'zvm')"
-    exit 1
-fi
-
 ensure_required_progs
 index_init
 assume_target
