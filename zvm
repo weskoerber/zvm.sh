@@ -380,6 +380,16 @@ cmd_use() {
     index_set_active "$_version"
 }
 
+cmd_which() {
+    _active_version="$(index_get_active)"
+
+    if [ -z "$_active_version" ]; then
+        exit 1
+    fi
+
+    echo "$ZVM_HOME/$_active_version"
+}
+
 # command: install
 # args:
 #   $1  Version name from index
@@ -553,6 +563,8 @@ Commands:
 
   use <version>                  Use an installed Zig version
 
+  which                          Print the path of the active Zig version
+
   uninstall [OPTIONS] <version>  Uninstall a Zig version
     -l, --use-latest             Fallback to latest version after uninstalling
     -f, --force                  Forcefully uninstall, even if version is active
@@ -657,6 +669,11 @@ args_parse_command() {
                 cmd_use $@
                 exit $?
                 ;;
+           which)
+               shift
+               cmd_which $@
+               exit $?
+               ;;
             *)
                 echo "unrecognized command '$1'"
                 ;;
