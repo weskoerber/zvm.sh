@@ -520,7 +520,9 @@ cmd_uninstall() {
     json=$(jq . "$versions_file")
     echo "$json" | jq "del(.releases.\"$_version\")" > "$versions_file"
 
-    cmd_use "$(index_list_local | tail -n 1)"
+    if [ $o_use_latest -eq 1 ]; then
+        cmd_use "$(index_list_local | tail -n 1)"
+    fi
 }
 
 ################################################################################
