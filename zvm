@@ -448,7 +448,7 @@ cmd_install() {
     index="$(index_fetch_remote)"
 
     if [ "${_version}" = 'master' ]; then
-        _version="$(index_get_master_version "$index")"
+        _version="$(echo "$index" | index_get_master_version)"
     fi
 
     vrb "installing '$_version'"
