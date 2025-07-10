@@ -336,20 +336,36 @@ cmd_list() {
         esac
     done
 
+    active="$(index_get_active)"
+
+    index=''
+    list=''
+
     if [ $o_remote -eq 1 ]; then
-        # index_fetch_remote | index_list | sort -Vr
         index="$(index_fetch_remote)"
-        for v in $(echo "$index" | index_list | sort -Vr); do
-            if [ "$v" = 'master' ]; then
-                master_version="$(echo "$index" | index_get_master_version)"
-                echo "$master_version ($v)"
-            else
-                echo "$v"
-            fi
-        done
+        list="$(echo "$index" | index_list | sort -Vr)"
     else
-        index_list_local | sort -Vr
+        list="$(index_list_local | sort -Vr)"
     fi
+
+    for v in $list; do
+        entry=''
+        resolved_version=''
+        if [ "$v" = 'master' ]; then
+            resolved_version="$(echo "$index" | index_get_master_version)"
+            entry="$resolved_version ($v)"
+        else
+            resolved_version="$v"
+            entry="$v"
+        fi
+
+        if [ "$resolved_version" = "$active" ]; then
+            entry="$entry (active)"
+        fi
+
+        echo "$entry"
+    done
+
 }
 
 # command: use
