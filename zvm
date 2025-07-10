@@ -122,9 +122,15 @@ index_list_local() {
     index_fetch_local | jq -r '.releases|keys[]'
 }
 
-# List versions from the remote index
-index_list_remote() {
-    index_fetch_remote | jq -r 'keys_unsorted|.[]'
+# List versions from the index argument ($1) or stdin
+# args:
+#   $1  The index JSON object
+index_list() {
+    if [ -z "$1" ]; then
+        cat - | jq -r 'keys_unsorted|.[]'
+    else
+        echo "$1" | jq -r 'keys_unsorted|.[]'
+    fi
 }
 
 # Add a release to the local index
@@ -170,10 +176,20 @@ index_remove_active() {
     echo "$current" | jq ".active=null" > "$versions_file"
 }
 
-# Convert the master tag to a semver by reading remote index
+# Convert the master tag to a semver by reading index argument ($1) or stdin
+# args:
+#   $1  The index json object
 index_get_master_version() {
-    vrb "fetching current master version from remote index"
-    master_version=$(index_fetch_remote | jq -r ".master.version")
+    vrb "resolving master version from index"
+
+    master_version=''
+
+    if [ -z "$1" ]; then
+        master_version="$(cat - | jq -r '.master.version')"
+    else
+        master_version="$(echo "$1" | jq -r '.master.version')"
+    fi
+
     if [ -z "$master_version" ] || [ "$master_version" = 'null' ]; then
         err "failed retrieving master version from remote index"
         exit 1
@@ -327,7 +343,7 @@ cmd_list() {
     done
 
     if [ $o_remote -eq 1 ]; then
-        index_list_remote | sort -Vr
+        index_fetch_remote | index_list | sort -Vr
     else
         index_list_local | sort -Vr
     fi
@@ -410,9 +426,10 @@ cmd_install() {
 
     _version=$1
     index_version=$_version
+    index="$(index_fetch_remote)"
 
     if [ "${_version}" = 'master' ]; then
-        _version=$(index_get_master_version)
+        _version="$(index_get_master_version "$index")"
     fi
 
     vrb "installing '$_version'"
@@ -423,7 +440,7 @@ cmd_install() {
         exit 1
     fi
 
-    json=$(index_fetch_remote | jq -r ".\"$index_version\"")
+    json=$(echo "$index" | jq -r ".\"$index_version\"")
     if [ "${json}" = 'null' ] && [ $o_exact -eq 0 ]; then
         err "version '$index_version' not found in remote index"
         exit 1
