@@ -106,16 +106,10 @@ zvm help
 - `ZVM_BIN` - `zvm` bin directory (where `zvm` symlinks Zig binaries)
 - `ZVM_MIRROR` - Specify a mirror to use
 - `ZVM_MIRRORLIST` - Specify the source for the list of mirrors `zvm` considers
-    - By default, this is `mirrors.json` from
-    [mlugg/setup-zig](https://raw.githubusercontent.com/mlugg/setup-zig/refs/heads/main/mirrors.json)
-
-## TODO
-
-- [ ] Support building from source? (in-progress, see #14)
-- [x] Allow custom download location (default: `$HOME/.local/share/zvm`)
-    - 9b1afd4
-- [x] Allow custom install prefix (default: `$HOME/.local/bin/zig`)
-    - 9b1afd4
+    - By default, this is `community-mirrors.txt` from
+    [https://ziglang.org/download/community-mirrors.txt]. See Ziglang's
+    [Community Mirrors page](https://ziglang.org/download/community-mirrors/)
+    for more info.
 
 ## Cross-platform support
 
