@@ -1,17 +1,21 @@
 #!/bin/sh
 
+set -euo pipefail
+
 ZVM_HOME=${ZVM_HOME:-"$HOME/.local/share/zvm"}
 ZVM_BIN=${ZVM_BIN:-"$HOME/.local/bin"}
 ZVM_MIRROR="${ZVM_MIRROR:-}"
 ZVM_MIRRORLIST="${ZVM_MIRRORLIST:-https://ziglang.org/download/community-mirrors.txt}"
 
 readonly required_progs="curl,jq,sha256sum,tar,unzip"
-readonly supported_extensions=".tar.xz"
-readonly os="$(uname | tr '[:upper:]' '[:lower:]')"
-readonly arch="$(uname -m)"
+os="$(uname | tr '[:upper:]' '[:lower:]')"
+readonly os
+arch="$(uname -m)"
+readonly arch
 readonly native_target="${arch}-${os}"
 readonly bin_name="zig"
-readonly self_name="$(basename "$0")"
+self_name="$(basename "$0")"
+readonly self_name
 readonly self_version="0.1.0"
 readonly versions_file="${ZVM_HOME}/versions.json"
 readonly mirrors_file="${ZVM_HOME}/mirrors.txt"
@@ -25,11 +29,15 @@ o_target="$native_target"
 # Logging functions                                                            #
 ################################################################################
 vrb() {
-    [ $o_verbose -eq 1 ] && echo "vrb: ${1}" >&2
+    if [ $o_verbose -eq 1 ]; then
+        echo "vrb: ${1}" >&2
+    fi
 }
 
 vrb2() {
-    [ $o_extra_verbose -eq 1 ] && echo "vrb: ${1}" >&2
+    if [ $o_extra_verbose -eq 1 ]; then
+        echo "vrb: ${1}" >&2
+    fi
 }
 
 warn() {
@@ -67,8 +75,8 @@ mirror_random() {
     file_data=$(cat "$mirrors_file")
 
     count=$(echo "$file_data" | wc -l)
-    i=$(shuf -i 1-$count -n 1)
-    mirror=$(echo "$file_data" | head -$i | tail -1)
+    i=$(shuf -i 1-"$count" -n 1)
+    mirror=$(echo "$file_data" | head -"$i" | tail -1)
 
     vrb "download mirror is '$mirror' ($i of $count)"
 
@@ -106,9 +114,7 @@ index_fetch_remote() {
     index="$ZVM_MIRROR/index.json"
 
     vrb "fetching remote index from $index"
-    curl_output=$(curl -s "$index")
-
-    if [ $? -ne 0 ]; then
+    if ! curl_output=$(curl -s "$index"); then
         err "failed fetching index"
         err "curl: $curl_output"
     else
@@ -122,15 +128,9 @@ index_list_local() {
     index_fetch_local | jq -r '.releases|keys[]'
 }
 
-# List versions from the index argument ($1) or stdin
-# args:
-#   $1  The index JSON object
+# List versions passed via stdin
 index_list() {
-    if [ -z "$1" ]; then
-        cat - | jq -r 'keys_unsorted|.[]'
-    else
-        echo "$1" | jq -r 'keys_unsorted|.[]'
-    fi
+    cat - | jq -r 'keys_unsorted|.[]'
 }
 
 # Add a release to the local index
@@ -176,19 +176,11 @@ index_remove_active() {
     echo "$current" | jq ".active=null" > "$versions_file"
 }
 
-# Convert the master tag to a semver by reading index argument ($1) or stdin
-# args:
-#   $1  The index json object
+# Convert the master tag to a semver by reading index passed via stdin
 index_get_master_version() {
     vrb "resolving master version from index"
 
-    master_version=''
-
-    if [ -z "$1" ]; then
-        master_version="$(cat - | jq -r '.master.version')"
-    else
-        master_version="$(echo "$1" | jq -r '.master.version')"
-    fi
+    master_version="$(cat - | jq -r '.master.version')"
 
     if [ -z "$master_version" ] || [ "$master_version" = 'null' ]; then
         err "failed retrieving master version from remote index"
@@ -261,8 +253,8 @@ file_download() {
         tar --strip-components=1 -xf "$path" -C "$dir"
     elif [ "$extension" = '.zip' ]; then
         unzip -q "$path" -d "$dir"
-        mv $dir/zig-*/* "$dir"
-        rm -r $dir/zig-*
+        mv "$dir/zig-*/*" "$dir"
+        rm -r "$dir/zig-*"
     fi
 
     vrb "cleaning up"
@@ -309,8 +301,8 @@ file_download_no_checksum() {
         tar --strip-components=1 -xf "$path" -C "$dir"
     elif [ "$extension" = '.zip' ]; then
         unzip -q "$path" -d "$dir"
-        mv $dir/zig-*/* "$dir"
-        rm -r $dir/zig-*
+        mv "$dir/zig-*/*" "$dir"
+        rm -r "$dir/zig-*"
     fi
 
     vrb "cleaning up"
@@ -330,7 +322,7 @@ file_download_no_checksum() {
 #   -i, --installed  List versions from the local index instead of remote
 o_remote=1
 cmd_list() {
-    for arg in "$@"; do
+    for _ in "$@"; do
         case $1 in
             -i|--installed)
                 o_remote=0
@@ -411,7 +403,7 @@ cmd_which() {
 o_exact=0
 o_use=0
 cmd_install() {
-    for arg in "$@"; do
+    for _ in "$@"; do
         case $1 in
             -e|--exact)
                 o_exact=1
@@ -447,14 +439,15 @@ cmd_install() {
     fi
 
     if [ $o_exact -eq 1 ]; then
-        json=$(file_download_no_checksum "$_version")
+        if ! json=$(file_download_no_checksum "$_version"); then
+            err "failed installing $_version"
+            exit 1
+        fi
     else
-        file_download "$_version" "$json"
-    fi
-
-    if [ $? -ne 0 ]; then
-        err "failed installing $_version"
-        exit 1
+        if ! file_download "$_version" "$json"; then
+            err "failed installing $_version"
+            exit 1
+        fi
     fi
 
     index_add_release "$_version" "$json"
@@ -494,7 +487,7 @@ cmd_prune() {
 o_force=0
 o_use_latest=0
 cmd_uninstall() {
-    for arg in "$@"; do
+    for _ in "$@"; do
         case $1 in
             -f|--force)
                 o_force=1
@@ -612,7 +605,7 @@ ensure_required_progs() {
 
 # Parse global options (options before command)
 args_parse_global() {
-    for arg in "$@"; do
+    for _ in "$@"; do
         case $1 in
             # Parse global options
             -h | --help | h | help)
@@ -643,7 +636,7 @@ args_parse_global() {
         esac
     done
 
-    echo $@
+    echo "$@"
 }
 
 # Parse command and call its function
@@ -653,37 +646,37 @@ args_parse_command() {
         exit 0
     fi
 
-    for arg in "$@"; do
+    for _ in "$@"; do
         case $1 in
             # Parse commands
             ls|list)
                 shift
-                cmd_list $@
+                cmd_list "$@"
                 exit $?
                 ;;
             i|install)
                 shift
-                cmd_install $@
+                cmd_install "$@"
                 exit $?
                 ;;
             prune)
                 shift
-                cmd_prune $@
+                cmd_prune "$@"
                 exit $?
                 ;;
             rm|uninstall)
                 shift
-                cmd_uninstall $@
+                cmd_uninstall "$@"
                 exit $?
                 ;;
            use)
                 shift
-                cmd_use $@
+                cmd_use "$@"
                 exit $?
                 ;;
            which)
                shift
-               cmd_which $@
+               cmd_which "$@"
                exit $?
                ;;
             *)
@@ -718,7 +711,7 @@ assume_target
 
 # TODO(cleanup): have to call args_parse_global twice: first to set global
 # options, then to get command without global options
-args_parse_global $@ > /dev/null
+args_parse_global "$@" > /dev/null
 
 # TODO: clean this up... we don't know which options, if any, are provided
 # before this line
@@ -728,4 +721,5 @@ vrb2 "ZVM_BIN: $ZVM_BIN"
 vrb2 "native_target: $native_target"
 vrb2 "target: $o_target"
 
-args_parse_command $(args_parse_global $@)
+# shellcheck disable=SC2046
+args_parse_command $(args_parse_global "$@")
