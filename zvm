@@ -61,13 +61,15 @@ panic_missing_prog() {
 ################################################################################
 # Initialize the mirror list
 mirrors_init() {
-    if ! [ -f "$mirrors_file" ]; then
-        vrb 'creating new mirrors.txt'
+    [ -f "$mirrors_file" ] || mirrors_init_force
+}
 
-        mkdir -p "$ZVM_HOME"
+mirrors_init_force() {
+    vrb 'creating new mirrors.txt'
 
-        curl -s "$ZVM_MIRRORLIST" -o "$mirrors_file"
-    fi
+    mkdir -p "$ZVM_HOME"
+
+    curl -s "$ZVM_MIRRORLIST" -o "$mirrors_file"
 }
 
 # Retrieve a mirror from the mirror list at random
@@ -540,6 +542,30 @@ cmd_uninstall() {
     fi
 }
 
+# command: mirror
+# options:
+#   -r, --refresh       Refresh mirror list
+o_refresh=0
+cmd_mirror() {
+    for _ in "$@"; do
+        case $1 in
+            ls) cat "$mirrors_file"
+                ;;
+            -r|--refresh)
+                o_refresh=1
+                shift
+                ;;
+            *)
+                err "unrecognized argument: '$1'"
+                exit 1
+        esac
+    done
+
+    if [ $o_refresh -eq 1 ]; then
+        mirrors_init_force
+    fi
+}
+
 ################################################################################
 # Helper functions                                                             #
 ################################################################################
@@ -574,6 +600,9 @@ Commands:
     -l, --use-latest             Fallback to latest version after uninstalling
     -f, --force                  Forcefully uninstall, even if version is active
 
+  mirror [OPTIONS] [COMMAND]     List/manage mirrors
+    -r, --refresh                Fetch and overwrite community mirror list
+    ls                           List community mirror list
   prune                          Uninstall all but the currently active version
   help                           Show this help page
 
@@ -677,6 +706,11 @@ args_parse_command() {
            which)
                shift
                cmd_which "$@"
+               exit $?
+               ;;
+           mirror)
+               shift
+               cmd_mirror "$@"
                exit $?
                ;;
             *)
