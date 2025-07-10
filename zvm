@@ -362,7 +362,7 @@ cmd_use() {
     fi
 
     if [ "$_version" = 'master' ]; then
-        _version=$(index_get_master_version)
+        _version=$(index_fetch_remote | index_get_master_version)
     fi
 
     installed=$(index_fetch_local | jq -r ".releases.\"$_version\"")
