@@ -337,7 +337,16 @@ cmd_list() {
     done
 
     if [ $o_remote -eq 1 ]; then
-        index_fetch_remote | index_list | sort -Vr
+        # index_fetch_remote | index_list | sort -Vr
+        index="$(index_fetch_remote)"
+        for v in $(echo "$index" | index_list | sort -Vr); do
+            if [ "$v" = 'master' ]; then
+                master_version="$(echo "$index" | index_get_master_version)"
+                echo "$master_version ($v)"
+            else
+                echo "$v"
+            fi
+        done
     else
         index_list_local | sort -Vr
     fi
