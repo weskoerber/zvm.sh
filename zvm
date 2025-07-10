@@ -16,7 +16,7 @@ readonly native_target="${arch}-${os}"
 readonly bin_name="zig"
 self_name="$(basename "$0")"
 readonly self_name
-readonly self_version="0.2.0"
+readonly self_version="0.2.1"
 readonly versions_file="${ZVM_HOME}/versions.json"
 readonly mirrors_file="${ZVM_HOME}/mirrors.txt"
 
