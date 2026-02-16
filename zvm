@@ -62,10 +62,17 @@ panic_missing_prog() {
 # Initialize the mirror list
 mirrors_init() {
     [ -f "$mirrors_file" ] || mirrors_init_force
+
+    now="$(date --date=now +%s)"
+    mod="$(stat -c %Y "$mirrors_file")"
+    age=$((now-mod))
+    if [ $age -gt 86400 ]; then
+        mirrors_init_force
+    fi
 }
 
 mirrors_init_force() {
-    vrb 'creating new mirrors.txt'
+    vrb 'syncing community mirrors'
 
     mkdir -p "$ZVM_HOME"
 
