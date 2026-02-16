@@ -243,7 +243,9 @@ file_download() {
     vrb "downloading $tarball ($extension) to $dir"
 
     echo "$shasum *$path" > "$path.shasum"
-    curl -s --output "$path" "$tarball" > /dev/null 2>&1
+    curl -s --output "$path" \
+        --get --data 'source=weskoerber-zvm.sh' \
+        "$tarball" > /dev/null 2>&1
 
     vrb "verifying shasum"
 
@@ -300,7 +302,9 @@ file_download_no_checksum() {
 
     vrb "downloading $tarball ($extension) to $dir"
 
-    curl -s --output "$path" "$tarball" > /dev/null 2>&1
+    curl -s --output "$path" \
+        --get --data 'source=weskoerber-zvm.sh' \
+        "$tarball" > /dev/null 2>&1
 
     size=$(du -b "$path" | awk '{print $1}')
 
